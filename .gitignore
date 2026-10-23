@@ -1,0 +1,4 @@
+# 정산 서류·서명·결과물은 공개 저장소에 올리지 않는다
+anthropic-claim/*
+!anthropic-claim/README.md
+__pycache__/
