@@ -300,6 +300,8 @@ def main():
     ap.add_argument("--sms", help="KBank 문자 캡처")
     ap.add_argument("--mask", action="append", default=[], help="가릴 영역 x0,y0,x1,y1 (px)")
     ap.add_argument("--date", help="작성일 YYMMDD (기본 오늘)")
+    ap.add_argument("--docs", default=os.path.join(os.path.expanduser("~"), "Documents"),
+                    help="완성본(엑셀+합본 PDF)을 복사해 둘 폴더 (기본 ~/Documents)")
     a = ap.parse_args()
 
     root = os.path.abspath(a.root)
@@ -367,6 +369,13 @@ def main():
 
     problems, gt, n_pages = verify(xlsx, claim_pdf, bundle, a.thb, verify_png)
 
+    # 완성본만 Documents 로 (초안·검증 실패본은 out/ 에만 둔다)
+    delivered = []
+    if not draft and not problems and a.docs:
+        os.makedirs(a.docs, exist_ok=True)
+        for p in (xlsx, bundle):
+            delivered.append(shutil.copy2(p, a.docs))
+
     print("\n=== 정산 결과 ===")
     print(f"Invoice   {inv['invoice']}  발행 {inv['issue']}  Max {inv['plan']}"
           + (f" (업그레이드: {inv['gross']:,.2f} − {inv['old_plan']} 크레딧 {inv['credit']:,.2f})"
@@ -379,6 +388,7 @@ def main():
     print("첨부 순서 " + " → ".join(k for k, _ in parts) + f"  ({n_pages}쪽)")
     print(f"엑셀      {xlsx}\n합본      {bundle}\n확인용    {verify_png}")
     print("검증      " + ("OK" if not problems else "; ".join(problems)))
+    print("Documents " + (", ".join(delivered) if delivered else "(복사 안 함 — 초안이거나 검증 실패)"))
 
 
 if __name__ == "__main__":

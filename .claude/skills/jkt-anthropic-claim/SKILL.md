@@ -56,7 +56,8 @@ python3 $S --month YYMM --thb 3436.81 --sms anthropic-claim/inbox/YYMM/sms.png -
 python3 $S --month YYMM                                   # 금액 근거 없음 → _DRAFT
 ```
 
-옵션: `--pr-signed`(이미 서명된 PR), `--pr-no`(PR 번호 직접), `--base`(양식 경로), `--date YYMMDD`(작성일, 기본 오늘).
+옵션: `--pr-signed`(이미 서명된 PR), `--pr-no`(PR 번호 직접), `--base`(양식 경로), `--date YYMMDD`(작성일, 기본 오늘),
+`--docs`(완성본 복사 폴더, 기본 `~/Documents`).
 
 ## 스크립트가 하는 일 (규칙 고정 — 바꾸려면 팀장 확인)
 
@@ -85,10 +86,12 @@ python3 $S --month YYMM                                   # 금액 근거 없음
    순서 = ใบเบิก → Invoice → Receipt → 서명한 PR (→ 문자 캡처는 있을 때만 맨 뒤)
 6. **검증**: 이미지 2개(로고+서명), G20 수식 유지, PDF 1쪽·수식 오류 0,
    Grand Total = 바트 금액. 1쪽을 `out/…_p1_check.png` 로 렌더한다.
+7. **완성본 전달**: 검증 통과한 최종본(엑셀 + `_전체.pdf`)을 팀장이 주로 쓰는
+   **`~/Documents`** 에 복사한다 (`--docs` 로 변경). `_DRAFT`·검증 실패본은 복사하지 않는다.
 
 ## Claude 가 직접 할 일
 
 - 스크립트 끝나면 `_p1_check.png` 를 **눈으로 열어** 서명 위치(Request by 점선 위)와
   H10 줄바꿈(잘림 없음)을 확인한다. PR 이 있으면 서명본도 렌더해서 Review 두 칸만 바뀌었는지 본다.
 - `history.md` 에 한 줄 추가: `| YYYY-MM | Invoice | USD | THB | 비고(플랜, PR번호) |`
-- 보고는 짧게: **금액(USD/THB)·첨부 순서·비어 있는 칸**만.
+- 보고는 짧게: **금액(USD/THB)·첨부 순서·비어 있는 칸**과 Documents 에 넣은 파일 경로만.
