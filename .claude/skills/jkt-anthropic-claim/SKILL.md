@@ -65,7 +65,8 @@ python3 $S --month YYMM                                   # 금액 근거 없음
    (업그레이드 시 `Unused time on Max plan - 5x …` 크레딧). 영수증의 Invoice 번호·금액과 불일치면 중단.
 2. **ใบเบิก 엑셀** `out/YYMMDD_ใบเบิก_Anthropic_JEONGHO CHIN.xlsx`
    - C6 `JEONGHO CHIN`, C7 `JKT` 유지, H6 `=TODAY()`
-   - B10 1 / C10 `ค่าบริการ AI รายเดือน Claude Max plan {5x|20x} (Anthropic)`
+   - B10 1 / C10 `ค่าบริการ AI รายเดือน Claude {플랜명} (Anthropic)` — 플랜명은 인보이스 첫 품목 그대로
+     (`Max plan - 20x` → `Max plan 20x`, 2026-11부터 `Claude Ultra` → `Ultra`)
      (+업그레이드면 ` อัปเกรดจาก 5x รอบ DD/MM/YYYY-DD/MM/YYYY`)
    - D10 1 / E10 `เดือน` / F10 바트 / G10 `=D10*F10`
    - H10 `Invoice TNXTMSWM-00NN USD {usd} = THB {thb} ตามยอดเรียกเก็บบัตร {영수증 결제일} / อ้างอิง {PR번호}`

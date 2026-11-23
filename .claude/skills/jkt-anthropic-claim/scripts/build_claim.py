@@ -78,20 +78,36 @@ def parse_invoice(path):
     inv = re.search(r"Invoice number\s+([A-Z0-9]+)\W+(\d{4})", t)
     issue = re.search(r"Date of issue\s+([A-Z][a-z]+ \d{1,2}, \d{4})", t)
     total = re.search(r"\bTotal\s+\$([\d,]+\.\d\d)", t)
-    plan = re.search(r"Max plan\W+(\d+x)\s.*?\$([\d,]+\.\d\d)", t)
+    # 첫 품목 줄: 'Max plan - 20x  1  $200.00' / 'Claude Ultra  1  $200.00' (플랜명은 바뀔 수 있음)
+    body = t[t.find("Description"):]
+    plan = re.search(r"^[ \t]*(\S.*?)\s+\d+\s+\$([\d,]+\.\d\d)", body, re.M)
     if not (inv and issue and total and plan):
         die(f"인보이스 파싱 실패: {path}")
-    credit = re.search(r"Unused time on Max plan\W+(\d+x).*?\$([\d,]+\.\d\d)", t)
+    credit = re.search(r"Unused time on (.+?) after.*?\$([\d,]+\.\d\d)", t, re.S)
+    name, tag, short = plan_names(plan.group(1))
+    old = plan_names(credit.group(1)) if credit else (None, None, None)
     return {
         "invoice": f"{inv.group(1)}-{inv.group(2)}",
         "issue": long_date(issue.group(1)),
         "usd": money(total.group(1)),
-        "plan": plan.group(1),
+        "name": name,          # C10: 'Max plan 20x' / 'Ultra'
+        "plan": tag,           # '20x' / 'Ultra'
+        "short": short,        # H10: 'Max 20x' / 'Ultra'
         "gross": money(plan.group(2)),
-        "period": parse_period(t, plan.group(0)),
-        "old_plan": credit.group(1) if credit else None,
+        "period": parse_period(body, plan.group(0)),
+        "old_plan": old[1],
+        "old_short": old[2],
         "credit": money(credit.group(2)) if credit else None,
     }
+
+
+def plan_names(desc):
+    """인보이스 품목명 -> (C10 표기, 태그, 비고 표기)."""
+    m = re.search(r"Max plan\W+(\d+x)", desc)
+    if m:
+        return f"Max plan {m.group(1)}", m.group(1), f"Max {m.group(1)}"
+    name = re.sub(r"^Claude\s+", "", desc.strip())
+    return name, name, name
 
 
 def parse_receipt(path):
@@ -159,7 +175,7 @@ def build_xlsx(base, sig, out_path, inv, rec, thb, pr_no):
         ws["C7"] = "JKT"
     ws["H6"] = "=TODAY()"
 
-    desc = f"ค่าบริการ AI รายเดือน Claude Max plan {inv['plan']} (Anthropic)"
+    desc = f"ค่าบริการ AI รายเดือน Claude {inv['name']} (Anthropic)"
     if inv["old_plan"] and inv["period"]:
         s, e = inv["period"]
         desc += f" อัปเกรดจาก {inv['old_plan']} รอบ {ddmmyyyy(s)}-{ddmmyyyy(e)}"
@@ -167,7 +183,7 @@ def build_xlsx(base, sig, out_path, inv, rec, thb, pr_no):
     remark = f"Invoice {inv['invoice']} USD {inv['usd']:,.2f}"
     if inv["credit"]:
         # 'Max 20x 200.00' 은 폰트 합자로 '20× 200.00' 처럼 찍혀서 숫자 사이에 태국어를 둔다
-        remark += (f" (Max {inv['plan']} ราคา {inv['gross']:,.2f} หักเครดิต Max {inv['old_plan']}"
+        remark += (f" ({inv['short']} ราคา {inv['gross']:,.2f} หักเครดิต {inv['old_short']}"
                    f" ที่เหลือ {inv['credit']:,.2f})")
     if thb is not None:
         remark += f" = THB {thb:,.2f}"
@@ -377,7 +393,7 @@ def main():
             delivered.append(shutil.copy2(p, a.docs))
 
     print("\n=== 정산 결과 ===")
-    print(f"Invoice   {inv['invoice']}  발행 {inv['issue']}  Max {inv['plan']}"
+    print(f"Invoice   {inv['invoice']}  발행 {inv['issue']}  {inv['short']}"
           + (f" (업그레이드: {inv['gross']:,.2f} − {inv['old_plan']} 크레딧 {inv['credit']:,.2f})"
              if inv["credit"] else ""))
     print(f"Receipt   {rec['receipt']}  결제 {rec['paid']}  {rec['card'] or ''}")
